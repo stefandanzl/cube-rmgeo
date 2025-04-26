@@ -123,11 +123,11 @@ func main() {
 			formatSpecs = ParseFormatString("P:14 Y:12 X:12 H:10 MC:6 DT:8")
 		}
 
-		processTask := func() {
-			ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-								 config.Delimiter, formatSpecs, 
-								 config.ProcessedDir, config.OriginalFile, 
-								 extensionsMap)
+		processTask := func() ([]string, error) {
+			return ProcessDirectoryFiles(config.Directory, config.OutputPattern,
+				config.Delimiter, formatSpecs,
+				config.ProcessedDir, config.OriginalFile,
+				extensionsMap)
 		}
 
 		if *serverMode {
@@ -137,8 +137,7 @@ func main() {
 		}
 
 		// Process files in the directory
-		processedFiles, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-			config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile, extensionsMap)
+		processedFiles, err := processTask()
 		if err != nil {
 			fmt.Printf("Error occurred processing files: %v", err)
 		}
@@ -149,8 +148,7 @@ func main() {
 			go func() {
 				for {
 					log.Println("Polling directory for new files...")
-					_, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-						config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
+					_, err := processTask()
 					if err != nil {
 						log.Printf("Error during scheduled processing: %v\n", err)
 					}
@@ -220,7 +218,7 @@ func main() {
 }
 
 // StartServer starts the server mode with the given configuration
-func StartServer(config *ServerConfig, formatSpecs []FormatSpec) {
+func StartServer(config *ServerConfig, processTask func() ([]string, error)) {
 	log.Printf("Starting server on port %d\n", config.Port)
 	log.Printf("Watching directory: %s\n", config.Directory)
 	log.Printf("Using delimiter: '%s'\n", config.Delimiter)
@@ -236,8 +234,7 @@ func StartServer(config *ServerConfig, formatSpecs []FormatSpec) {
 		log.Println("Received webhook notification, processing files...")
 
 		// Process files in the directory
-		processedFiles, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-			config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
+		processedFiles, err := processTask()
 
 		if err != nil {
 			log.Printf("Error processing files: %v\n", err)
@@ -286,7 +283,7 @@ func StartServer(config *ServerConfig, formatSpecs []FormatSpec) {
 
 // ProcessDirectoryFiles processes all CSV files in the directory that haven't been converted yet
 func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
-	formatSpecs []FormatSpec, processedDir string, originalFile string) ([]string, error, extensionsMap map[string]bool) {
+	formatSpecs []FormatSpec, processedDir string, originalFile string, extensionsMap map[string]bool) ([]string, error) {
 
 	// List all files in the directory
 	files, err := os.ReadDir(directory)
