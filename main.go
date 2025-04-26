@@ -77,16 +77,20 @@ func BuildFormattedLine(row []string, specs []FormatSpec) string {
 		paddedField := dataPadding(field, spec.Width)
 
 		// Add to result
-		result.WriteString(fmt.Sprintf("%s=%s", spec.Name, paddedField))
+		result.WriteString(fmt.Sprintf("%s=%s ", spec.Name, paddedField))
 	}
 
 	return result.String()
 }
 
 func dataPadding(data string, length int) string {
-	for len(data) < length {
+	if len([]rune(data)) > length {
+		data = "#OF#"
+	}
+	for len([]rune(data)) < length {
 		data = data + " "
 	}
+
 	return data
 }
 
@@ -268,23 +272,23 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 
 		// Check if it's a CSV file and hasn't been processed yet
 		ext := filepath.Ext(filePath)
-		if !strings.EqualFold(ext, ".csv") {
-			continue // Skip non-CSV files
-		}
+		// if !strings.EqualFold(ext, ".csv") {
+		// 	continue // Skip non-CSV files
+		// }
 
 		// Generate output filename
 		baseName := strings.TrimSuffix(file.Name(), ext)
-		outputName := fmt.Sprintf(outputPattern, baseName) + ext
-		outputPath := filepath.Join(directory, outputName)
+		outputName := fmt.Sprintf(outputPattern, baseName)
+		outputPath := filepath.Join(processedDir, outputName)
 
-		// Skip if output file already exists and is newer
-		if outputFileInfo, err := os.Stat(outputPath); err == nil {
-			inputFileInfo, err := os.Stat(filePath)
-			if err == nil && outputFileInfo.ModTime().After(inputFileInfo.ModTime()) {
-				log.Printf("Skipping already processed file: %s\n", file.Name())
-				continue
-			}
-		}
+		// // Skip if output file already exists and is newer
+		// if outputFileInfo, err := os.Stat(outputPath); err == nil {
+		// 	inputFileInfo, err := os.Stat(filePath)
+		// 	if err == nil && outputFileInfo.ModTime().After(inputFileInfo.ModTime()) {
+		// 		log.Printf("Skipping already processed file: %s\n", file.Name())
+		// 		continue
+		// 	}
+		// }
 
 		// Process the file
 		log.Printf("Processing file: %s\n", file.Name())
@@ -301,10 +305,10 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 			if err := os.MkdirAll(processedDir, 0755); err != nil {
 				log.Printf("Error creating processed directory: %v\n", err)
 			} else {
-				newPath := filepath.Join(processedDir, file.Name())
-				if err := os.Rename(filePath, newPath); err != nil {
-					log.Printf("Error moving processed file: %v\n", err)
-				}
+				// newPath := filepath.Join(processedDir, file.Name())
+				// if err := os.Rename(filePath, newPath); err != nil {
+				// 	log.Printf("Error moving processed file: %v\n", err)
+				// }
 			}
 		}
 	}
