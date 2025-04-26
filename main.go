@@ -195,7 +195,7 @@ func StartServer(config *ServerConfig) {
 
 		// Process files in the directory
 		processedFiles, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-			config.Delimiter, formatSpecs, config.ProcessedDir)
+			config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
 
 		if err != nil {
 			log.Printf("Error processing files: %v\n", err)
@@ -234,7 +234,7 @@ func StartServer(config *ServerConfig) {
 			for {
 				log.Println("Polling directory for new files...")
 				_, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-					config.Delimiter, formatSpecs, config.ProcessedDir)
+					config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
 				if err != nil {
 					log.Printf("Error during scheduled processing: %v\n", err)
 				}
@@ -252,7 +252,7 @@ func StartServer(config *ServerConfig) {
 
 // ProcessDirectoryFiles processes all CSV files in the directory that haven't been converted yet
 func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
-	formatSpecs []FormatSpec, processedDir string) ([]string, error) {
+	formatSpecs []FormatSpec, processedDir string, originalFile string) ([]string, error) {
 
 	// List all files in the directory
 	files, err := os.ReadDir(directory)
@@ -305,10 +305,18 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 			if err := os.MkdirAll(processedDir, 0755); err != nil {
 				log.Printf("Error creating processed directory: %v\n", err)
 			} else {
-				// newPath := filepath.Join(processedDir, file.Name())
-				// if err := os.Rename(filePath, newPath); err != nil {
-				// 	log.Printf("Error moving processed file: %v\n", err)
-				// }
+				if originalFile == "move" {
+					newPath := filepath.Join(processedDir, file.Name())
+					if err := os.Rename(filePath, newPath); err != nil {
+						log.Printf("Error moving original file: %v\n", err)
+					}
+				} else if originalFile == "delete" {
+					// TODO
+					if err := os.Remove(filepath.Join(directory, file.Name())); err != nil {
+						log.Printf("Error deleting original file: %v\n", err)
+					}
+				}
+
 			}
 		}
 	}
@@ -374,6 +382,7 @@ type ServerConfig struct {
 	FormatString  string `json:"formatString"`  // Format specification
 	ProcessedDir  string `json:"processedDir"`  // Directory to move processed files (optional)
 	PollInterval  int    `json:"pollInterval"`  // How often to check for new files (seconds)
+	OriginalFile  string `json:"originalFile"`  // What to do with original file
 }
 
 // LoadConfig loads the server configuration from a JSON file

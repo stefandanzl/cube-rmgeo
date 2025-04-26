@@ -5,5 +5,6 @@
   "outputPattern": "%s-converted.txt",
   "formatString": "P:14 Y:12 X:12 H:10 MC:6 DT:8",
   "processedDir": "C:\\PROJECTS\\PROGRAMMIEREN\\Go\\cube-rmgeo\\test\\output",
-  "pollInterval": 0
+  "pollInterval": 0,
+  "originalFile": "move"
 }
