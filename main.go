@@ -111,6 +111,11 @@ func main() {
 			log.Fatalf("Error loading config: %v", err)
 		}
 
+		extensionsMap := make(map[string]bool)
+		for _, e := range config.Extensions {
+			extensionsMap[e] = true
+		}
+
 		// Parse the format string
 		formatSpecs := ParseFormatString(config.FormatString)
 		if len(formatSpecs) == 0 {
@@ -118,15 +123,22 @@ func main() {
 			formatSpecs = ParseFormatString("P:14 Y:12 X:12 H:10 MC:6 DT:8")
 		}
 
+		processTask := func() {
+			ProcessDirectoryFiles(config.Directory, config.OutputPattern,
+								 config.Delimiter, formatSpecs, 
+								 config.ProcessedDir, config.OriginalFile, 
+								 extensionsMap)
+		}
+
 		if *serverMode {
 			// Start the server
-			StartServer(config, formatSpecs)
+			StartServer(config, processTask)
 			return
 		}
 
 		// Process files in the directory
 		processedFiles, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-			config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
+			config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile, extensionsMap)
 		if err != nil {
 			fmt.Printf("Error occurred processing files: %v", err)
 		}
@@ -274,7 +286,7 @@ func StartServer(config *ServerConfig, formatSpecs []FormatSpec) {
 
 // ProcessDirectoryFiles processes all CSV files in the directory that haven't been converted yet
 func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
-	formatSpecs []FormatSpec, processedDir string, originalFile string) ([]string, error) {
+	formatSpecs []FormatSpec, processedDir string, originalFile string) ([]string, error, extensionsMap map[string]bool) {
 
 	// List all files in the directory
 	files, err := os.ReadDir(directory)
@@ -294,6 +306,9 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 
 		// Check if it's a CSV file and hasn't been processed yet
 		ext := filepath.Ext(filePath)
+		if _, exists := extensionsMap[ext]; !exists {
+			continue
+		}
 		// if !strings.EqualFold(ext, ".csv") {
 		// 	continue // Skip non-CSV files
 		// }
@@ -397,16 +412,17 @@ func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSp
 
 // ServerConfig holds the configuration for server mode
 type ServerConfig struct {
-	Delimiter     string `json:"delimiter"`     // CSV delimiter
-	Port          int    `json:"port"`          // Server port
-	Directory     string `json:"directory"`     // Directory to watch for files
-	OutputPattern string `json:"outputPattern"` // Pattern for output filenames (e.g., "%s-converted")
-	FormatString  string `json:"formatString"`  // Format specification
-	ProcessedDir  string `json:"processedDir"`  // Directory to move processed files (optional)
-	PollInterval  int    `json:"pollInterval"`  // How often to check for new files (seconds)
-	OriginalFile  string `json:"originalFile"`  // What to do with original file
-	CertFile      string `json:"certFile"`      // What to do with original file
-	KeyFile       string `json:"keyFile"`       // What to do with original file
+	Delimiter     string   `json:"delimiter"` // CSV delimiter
+	Extensions    []string `json:"extensions"`
+	Port          int      `json:"port"`          // Server port
+	Directory     string   `json:"directory"`     // Directory to watch for files
+	OutputPattern string   `json:"outputPattern"` // Pattern for output filenames (e.g., "%s-converted")
+	FormatString  string   `json:"formatString"`  // Format specification
+	ProcessedDir  string   `json:"processedDir"`  // Directory to move processed files (optional)
+	PollInterval  int      `json:"pollInterval"`  // How often to check for new files (seconds)
+	OriginalFile  string   `json:"originalFile"`  // What to do with original file
+	CertFile      string   `json:"certFile"`      // What to do with original file
+	KeyFile       string   `json:"keyFile"`       // What to do with original file
 }
 
 // LoadConfig loads the server configuration from a JSON file
@@ -425,6 +441,9 @@ func LoadConfig(configPath string) (*ServerConfig, error) {
 	// Set defaults for missing values
 	if config.Delimiter == "" {
 		config.Delimiter = ","
+	}
+	if config.Extensions == nil {
+		config.Extensions = []string{"txt"}
 	}
 	if config.Port == 0 {
 		config.Port = 8080

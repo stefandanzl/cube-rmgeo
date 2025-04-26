@@ -1,5 +1,6 @@
 {
   "delimiter": ";",
+  "extensions": ["txt", "csv"],
   "port": 8080,
   "directory": "C:\\PROJECTS\\PROGRAMMIEREN\\Go\\cube-rmgeo\\test\\input",
   "outputPattern": "%s-converted.txt",
