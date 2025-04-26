@@ -133,6 +133,7 @@ func main() {
 		for _, e := range config.Extensions {
 			extensionsMap[e] = true
 		}
+		fmt.Println(extensionsMap)
 
 		// Parse the format string
 		formatSpecs := ParseFormatString(config.FormatString)
@@ -321,9 +322,11 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 
 		// Check if it's a CSV file and hasn't been processed yet
 		ext := filepath.Ext(filePath)
-		if _, exists := extensionsMap[ext]; !exists {
+		if _, exists := extensionsMap[strings.Trim(ext, ".")]; !exists {
+			// fmt.Println(ext + " exists not")
 			continue
 		}
+		// fmt.Println(ext + " exists")
 		// if !strings.EqualFold(ext, ".csv") {
 		// 	continue // Skip non-CSV files
 		// }
