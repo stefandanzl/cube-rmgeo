@@ -94,3 +94,77 @@ Configure foldersync to call the `/webhook` endpoint after it completes syncing.
 ## Security
 
 When `certFile` and `keyFile` are provided in the configuration, the server will use HTTPS instead of HTTP, providing secure communication.
+
+
+
+## Running as a Systemd Service
+
+You can run the Cube to rmGEO Conversion Server as a background service that automatically starts on boot.
+
+### Step 1: Create a systemd service file
+
+Create a file named `cube-rmgeo.service` in the systemd directory:
+
+```bash
+sudo nano /etc/systemd/system/cube-rmgeo.service
+```
+
+Add the following content to the file:
+
+```ini
+[Unit]
+Description=Cube to rmGEO Conversion Server Service
+After=network.target
+
+[Service]
+Type=simple
+User=yourusername
+ExecStart=/path/to/project/cube-rmgeo -c config.json -s
+WorkingDirectory=/path/to/project
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cube-rmgeo
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Be sure to replace:
+- `yourusername` with your actual username
+- `/path/to/project` with the actual full path to your project directory
+
+### Step 2: Enable and start the service
+
+Reload the systemd configuration:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+Enable the service to start automatically at boot:
+
+```bash
+sudo systemctl enable cube-rmgeo.service
+```
+
+Start the service immediately:
+
+```bash
+sudo systemctl start cube-rmgeo.service
+```
+
+### Step 3: Check service status
+
+Verify that the service is running correctly:
+
+```bash
+sudo systemctl status cube-rmgeo.service
+```
+
+### Managing the service
+
+- To stop the service: `sudo systemctl stop cube-rmgeo.service`
+- To restart the service: `sudo systemctl restart cube-rmgeo.service`
+- To view service logs: `sudo journalctl -u cube-rmgeo.service`

@@ -15,3 +15,10 @@ tasks:
     cmds:
       - go build -o cube-rmgeo.exe main.go
       - ./cube-rmgeo.exe -c config.json -s
+
+  build-arm64:
+    env:
+      GOOS: linux
+      GOARCH: arm64
+    cmds:
+      - go build -o cube-rmgeo main.go

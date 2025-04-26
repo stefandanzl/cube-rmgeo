@@ -1,0 +1,17 @@
+[Unit]
+Description=Cube to rmGEO Conversion Server Service
+After=network.target
+
+[Service]
+Type=simple
+User=youruser
+ExecStart=/your/path/here/cube-rmgeo -c config.json -s
+WorkingDirectory=/your/path/here/cube-rmgeo
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cube-rmgeo
+
+[Install]
+WantedBy=multi-user.target
