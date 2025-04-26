@@ -260,7 +260,16 @@ func StartServer(config *ServerConfig, formatSpecs []FormatSpec) {
 
 	// Start HTTP server
 	serverAddr := fmt.Sprintf(":%d", config.Port)
-	log.Fatal(http.ListenAndServe(serverAddr, nil))
+
+	if config.CertFile != "" && config.KeyFile != "" {
+		if err := http.ListenAndServeTLS(serverAddr, config.CertFile, config.KeyFile, nil); err != nil {
+			fmt.Printf("SSL Certificate file error! %v", err)
+			log.Fatal(http.ListenAndServe(serverAddr, nil))
+		}
+	} else {
+		log.Fatal(http.ListenAndServe(serverAddr, nil))
+	}
+
 }
 
 // ProcessDirectoryFiles processes all CSV files in the directory that haven't been converted yet
@@ -396,6 +405,8 @@ type ServerConfig struct {
 	ProcessedDir  string `json:"processedDir"`  // Directory to move processed files (optional)
 	PollInterval  int    `json:"pollInterval"`  // How often to check for new files (seconds)
 	OriginalFile  string `json:"originalFile"`  // What to do with original file
+	CertFile      string `json:"certFile"`      // What to do with original file
+	KeyFile       string `json:"keyFile"`       // What to do with original file
 }
 
 // LoadConfig loads the server configuration from a JSON file
