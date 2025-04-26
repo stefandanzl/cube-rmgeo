@@ -94,6 +94,23 @@ func dataPadding(data string, length int) string {
 	return data
 }
 
+func ensureAbsolutePath(path string) string {
+	// Check if the path is already absolute
+	if filepath.IsAbs(path) {
+		return path
+	}
+
+	// Get the current working directory
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return "-1"
+	}
+
+	// Join the working directory with the relative path
+	absolutePath := filepath.Join(workingDir, path)
+	return absolutePath
+}
+
 func main() {
 	// Define command-line flags
 	outputFile := flag.String("o", "", "Output file path (optional)")
@@ -271,13 +288,13 @@ func StartServer(config *ServerConfig, processTask func() ([]string, error)) {
 	serverAddr := fmt.Sprintf(":%d", config.Port)
 
 	if config.CertFile != "" && config.KeyFile != "" {
-		if err := http.ListenAndServeTLS(serverAddr, config.CertFile, config.KeyFile, nil); err != nil {
-			fmt.Printf("SSL Certificate file error! %v", err)
-			log.Fatal(http.ListenAndServe(serverAddr, nil))
+		err := http.ListenAndServeTLS(serverAddr, ensureAbsolutePath(config.CertFile), ensureAbsolutePath(config.KeyFile), nil)
+		if err == nil {
+			return
 		}
-	} else {
-		log.Fatal(http.ListenAndServe(serverAddr, nil))
+		fmt.Printf("SSL Certificate file error! %v", err)
 	}
+	log.Fatal(http.ListenAndServe(serverAddr, nil))
 
 }
 
@@ -350,7 +367,6 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 						log.Printf("Error deleting original file: %v\n", err)
 					}
 				}
-
 			}
 		}
 	}
