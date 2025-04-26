@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -252,7 +251,7 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 	formatSpecs []FormatSpec, processedDir string) ([]string, error) {
 
 	// List all files in the directory
-	files, err := ioutil.ReadDir(directory)
+	files, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, fmt.Errorf("error reading directory: %v", err)
 	}
@@ -280,7 +279,8 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 
 		// Skip if output file already exists and is newer
 		if outputFileInfo, err := os.Stat(outputPath); err == nil {
-			if outputFileInfo.ModTime().After(file.ModTime()) {
+			inputFileInfo, err := os.Stat(filePath)
+			if err == nil && outputFileInfo.ModTime().After(inputFileInfo.ModTime()) {
 				log.Printf("Skipping already processed file: %s\n", file.Name())
 				continue
 			}
@@ -372,7 +372,7 @@ type ServerConfig struct {
 
 // LoadConfig loads the server configuration from a JSON file
 func LoadConfig(configPath string) (*ServerConfig, error) {
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading config file: %v", err)
 	}
