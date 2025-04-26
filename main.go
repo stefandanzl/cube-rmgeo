@@ -84,6 +84,7 @@ func BuildFormattedLine(row []string, specs []FormatSpec) string {
 }
 
 func dataPadding(data string, length int) string {
+	data = strings.Trim(data, " ")
 	if len([]rune(data)) > length {
 		data = "#OF#"
 	}
@@ -417,7 +418,7 @@ func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSp
 		outputLine := BuildFormattedLine(row, formatSpecs)
 
 		// Write to output file
-		outFile.WriteString(outputLine + "\n")
+		outFile.WriteString(outputLine + "\r\n")
 	}
 
 	return nil
