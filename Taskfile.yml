@@ -9,3 +9,4 @@ tasks:
   default:
     cmds:
       - go build -o cube-rmgeo.exe main.go
+      - ./cube-rmgeo.exe -c config.json

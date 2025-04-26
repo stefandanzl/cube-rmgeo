@@ -359,7 +359,9 @@ func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSp
 	}
 
 	return nil
-} // ServerConfig holds the configuration for server mode
+}
+
+// ServerConfig holds the configuration for server mode
 type ServerConfig struct {
 	Delimiter     string `json:"delimiter"`     // CSV delimiter
 	Port          int    `json:"port"`          // Server port
@@ -395,9 +397,6 @@ func LoadConfig(configPath string) (*ServerConfig, error) {
 	}
 	if config.FormatString == "" {
 		config.FormatString = "P:14 Y:12 X:12 H:10 MC:6 DT:8"
-	}
-	if config.PollInterval == 0 {
-		config.PollInterval = 30 // Default to 30 seconds
 	}
 
 	return &config, nil
