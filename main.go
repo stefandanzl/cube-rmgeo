@@ -97,9 +97,10 @@ func dataPadding(data string, length int) string {
 func main() {
 	// Define command-line flags
 	outputFile := flag.String("o", "", "Output file path (optional)")
-	separator := flag.String("s", ",", "Input CSV separator (optional, default is comma)")
+	separator := flag.String("d", ",", "Input CSV deliminator (optional, default is comma)")
 	formatString := flag.String("f", "P:14 Y:12 X:12 H:10 MC:6 DT:8", "Format string for output (optional)")
 	configFile := flag.String("c", "", "Config file for server mode")
+	serverMode := flag.Bool("s", false, "If given will enable server mode at specified port in config file")
 	flag.Parse()
 
 	// Check if server mode is activated
@@ -110,9 +111,45 @@ func main() {
 			log.Fatalf("Error loading config: %v", err)
 		}
 
-		// Start the server
-		StartServer(config)
+		// Parse the format string
+		formatSpecs := ParseFormatString(config.FormatString)
+		if len(formatSpecs) == 0 {
+			log.Println("Error: Invalid format string. Using default format.")
+			formatSpecs = ParseFormatString("P:14 Y:12 X:12 H:10 MC:6 DT:8")
+		}
+
+		if *serverMode {
+			// Start the server
+			StartServer(config, formatSpecs)
+			return
+		}
+
+		// Process files in the directory
+		processedFiles, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
+			config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
+		if err != nil {
+			fmt.Printf("Error occurred processing files: %v", err)
+		}
+		fmt.Printf("Processed following files: %s", processedFiles)
+
+		// Start periodically checking for files
+		if config.PollInterval > 0 {
+			go func() {
+				for {
+					log.Println("Polling directory for new files...")
+					_, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
+						config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
+					if err != nil {
+						log.Printf("Error during scheduled processing: %v\n", err)
+					}
+
+					// Wait for the configured interval
+					time.Sleep(time.Duration(config.PollInterval) * time.Second)
+				}
+			}()
+		}
 		return
+
 	}
 
 	// CLI mode
@@ -171,18 +208,11 @@ func main() {
 }
 
 // StartServer starts the server mode with the given configuration
-func StartServer(config *ServerConfig) {
+func StartServer(config *ServerConfig, formatSpecs []FormatSpec) {
 	log.Printf("Starting server on port %d\n", config.Port)
 	log.Printf("Watching directory: %s\n", config.Directory)
 	log.Printf("Using delimiter: '%s'\n", config.Delimiter)
 	log.Printf("Using format string: '%s'\n", config.FormatString)
-
-	// Parse the format string
-	formatSpecs := ParseFormatString(config.FormatString)
-	if len(formatSpecs) == 0 {
-		log.Println("Error: Invalid format string. Using default format.")
-		formatSpecs = ParseFormatString("P:14 Y:12 X:12 H:10 MC:6 DT:8")
-	}
 
 	// Setup webhook endpoint
 	http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
@@ -227,23 +257,6 @@ func StartServer(config *ServerConfig) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(status)
 	})
-
-	// Start periodically checking for files
-	if config.PollInterval > 0 {
-		go func() {
-			for {
-				log.Println("Polling directory for new files...")
-				_, err := ProcessDirectoryFiles(config.Directory, config.OutputPattern,
-					config.Delimiter, formatSpecs, config.ProcessedDir, config.OriginalFile)
-				if err != nil {
-					log.Printf("Error during scheduled processing: %v\n", err)
-				}
-
-				// Wait for the configured interval
-				time.Sleep(time.Duration(config.PollInterval) * time.Second)
-			}
-		}()
-	}
 
 	// Start HTTP server
 	serverAddr := fmt.Sprintf(":%d", config.Port)

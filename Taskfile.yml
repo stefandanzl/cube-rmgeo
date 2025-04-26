@@ -10,3 +10,8 @@ tasks:
     cmds:
       - go build -o cube-rmgeo.exe main.go
       - ./cube-rmgeo.exe -c config.json
+
+  server:
+    cmds:
+      - go build -o cube-rmgeo.exe main.go
+      - ./cube-rmgeo.exe -c config.json -s
