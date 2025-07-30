@@ -10,6 +10,7 @@ tasks:
     cmds:
       - go build -o cube-rmgeo.exe main.go
       - ./cube-rmgeo.exe -c config.json
+      - ./cube-rmgeo.exe -c config.json test/input/a.txt
 
   server:
     cmds:
@@ -22,3 +23,9 @@ tasks:
       GOARCH: arm64
     cmds:
       - go build -o cube-rmgeo main.go
+
+  build-all:
+    deps:
+      - default
+      - pi
+      - server

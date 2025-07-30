@@ -95,6 +95,15 @@ func dataPadding(data string, length int) string {
 	return data
 }
 
+// ApplyReplacements applies post-processing string replacements to the output
+func ApplyReplacements(content string, replacements map[string]string) string {
+	result := content
+	for search, replace := range replacements {
+		result = strings.ReplaceAll(result, search, replace)
+	}
+	return result
+}
+
 func ensureAbsolutePath(path string) string {
 	// Check if the path is already absolute
 	if filepath.IsAbs(path) {
@@ -121,9 +130,9 @@ func main() {
 	serverMode := flag.Bool("s", false, "If given will enable server mode at specified port in config file")
 	flag.Parse()
 
-	// Check if server mode is activated
+	// Check if config file is specified
 	if *configFile != "" {
-		// Server mode - all other flags are ignored
+		// Load config file for settings
 		config, err := LoadConfig(*configFile)
 		if err != nil {
 			log.Fatalf("Error loading config: %v", err)
@@ -146,7 +155,7 @@ func main() {
 			return ProcessDirectoryFiles(config.Directory, config.OutputPattern,
 				config.Delimiter, formatSpecs,
 				config.ProcessedDir, config.OriginalFile,
-				extensionsMap)
+				extensionsMap, config.Replacements)
 		}
 
 		if *serverMode {
@@ -155,12 +164,57 @@ func main() {
 			return
 		}
 
-		// Process files in the directory
+		// Check if files are passed as arguments (drag-and-drop or CLI with files)
+		args := flag.Args()
+
+		log.Printf(`flag.Args() has %d elements: `, len(args))
+
+		if len(args) > 0 {
+			// Drag-and-drop or CLI mode with specific files - use config settings but process only the specified files
+			inputFile := args[0]
+
+			// Check if file exists
+			if _, err := os.Stat(inputFile); os.IsNotExist(err) {
+				fmt.Printf("Error: Input file '%s' does not exist\n", inputFile)
+				fmt.Println("\nPress Enter to close this window...")
+				fmt.Scanln()
+				os.Exit(1)
+			}
+
+			// Generate output filename using config pattern
+			ext := filepath.Ext(inputFile)
+			baseName := strings.TrimSuffix(filepath.Base(inputFile), ext)
+			outputName := fmt.Sprintf(config.OutputPattern, baseName)
+
+			// Determine output path
+			var outputFile string
+			if config.ProcessedDir != "" {
+				outputFile = filepath.Join(config.ProcessedDir, outputName)
+			} else {
+				outputFile = filepath.Join(filepath.Dir(inputFile), outputName)
+			}
+
+			// Process the file using config settings
+			err := ProcessFile(inputFile, outputFile, config.Delimiter, formatSpecs, config.Replacements)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				fmt.Println("\nPress Enter to close this window...")
+				fmt.Scanln()
+				os.Exit(1)
+			}
+
+			fmt.Printf("Conversion complete! Output saved to: %s\n", outputFile)
+			fmt.Println("\nPress Enter to close this window...")
+			fmt.Scanln()
+			return
+		}
+
+		// No files specified - run directory processing mode
 		processedFiles, err := processTask()
 		if err != nil {
 			fmt.Printf("Error occurred processing files: %v", err)
 		}
-		fmt.Printf("Processed following files: %s", processedFiles)
+		fmt.Printf("Processed following files: %s \n", processedFiles)
 
 		// Start periodically checking for files
 		if config.PollInterval > 0 {
@@ -178,7 +232,6 @@ func main() {
 			}()
 		}
 		return
-
 	}
 
 	// CLI mode
@@ -221,7 +274,7 @@ func main() {
 	}
 
 	// Process the file
-	err := ProcessFile(inputFile, *outputFile, *separator, formatSpecs)
+	err := ProcessFile(inputFile, *outputFile, *separator, formatSpecs, nil)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		fmt.Println("\nPress Enter to close this window...")
@@ -302,7 +355,7 @@ func StartServer(config *ServerConfig, processTask func() ([]string, error)) {
 
 // ProcessDirectoryFiles processes all CSV files in the directory that haven't been converted yet
 func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
-	formatSpecs []FormatSpec, processedDir string, originalFile string, extensionsMap map[string]bool) ([]string, error) {
+	formatSpecs []FormatSpec, processedDir string, originalFile string, extensionsMap map[string]bool, replacements map[string]string) ([]string, error) {
 
 	// List all files in the directory
 	files, err := os.ReadDir(directory)
@@ -347,7 +400,7 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 
 		// Process the file
 		log.Printf("Processing file: %s\n", file.Name())
-		err := ProcessFile(filePath, outputPath, delimiter, formatSpecs)
+		err := ProcessFile(filePath, outputPath, delimiter, formatSpecs, replacements)
 		if err != nil {
 			log.Printf("Error processing file %s: %v\n", file.Name(), err)
 			continue
@@ -380,7 +433,7 @@ func ProcessDirectoryFiles(directory, outputPattern, delimiter string,
 }
 
 // ProcessFile processes a single CSV file
-func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSpec) error {
+func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSpec, replacements map[string]string) error {
 	// Open the input file
 	file, err := os.Open(inputFile)
 	if err != nil {
@@ -411,7 +464,9 @@ func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSp
 	}
 	defer outFile.Close()
 
-	// Process each row
+	// Process each row and collect output
+	var allOutput strings.Builder
+	
 	for _, row := range data {
 		if len(row) == 0 {
 			continue // Skip empty rows
@@ -419,27 +474,32 @@ func ProcessFile(inputFile, outputFile, delimiter string, formatSpecs []FormatSp
 
 		// Use the dynamic formatting function
 		outputLine := BuildFormattedLine(row, formatSpecs)
-
-		// Write to output file
-		outFile.WriteString(outputLine + "\r\n")
+		allOutput.WriteString(outputLine + "\r\n")
 	}
+
+	// Apply post-processing replacements
+	finalOutput := ApplyReplacements(allOutput.String(), replacements)
+
+	// Write to output file
+	outFile.WriteString(finalOutput)
 
 	return nil
 }
 
 // ServerConfig holds the configuration for server mode
 type ServerConfig struct {
-	Delimiter     string   `json:"delimiter"` // CSV delimiter
-	Extensions    []string `json:"extensions"`
-	Port          int      `json:"port"`          // Server port
-	Directory     string   `json:"directory"`     // Directory to watch for files
-	OutputPattern string   `json:"outputPattern"` // Pattern for output filenames (e.g., "%s-converted")
-	FormatString  string   `json:"formatString"`  // Format specification
-	ProcessedDir  string   `json:"processedDir"`  // Directory to move processed files (optional)
-	PollInterval  int      `json:"pollInterval"`  // How often to check for new files (seconds)
-	OriginalFile  string   `json:"originalFile"`  // What to do with original file
-	CertFile      string   `json:"certFile"`      // What to do with original file
-	KeyFile       string   `json:"keyFile"`       // What to do with original file
+	Delimiter     string            `json:"delimiter"`     // CSV delimiter
+	Extensions    []string          `json:"extensions"`
+	Port          int               `json:"port"`          // Server port
+	Directory     string            `json:"directory"`     // Directory to watch for files
+	OutputPattern string            `json:"outputPattern"` // Pattern for output filenames (e.g., "%s-converted")
+	FormatString  string            `json:"formatString"`  // Format specification
+	ProcessedDir  string            `json:"processedDir"`  // Directory to move processed files (optional)
+	PollInterval  int               `json:"pollInterval"`  // How often to check for new files (seconds)
+	OriginalFile  string            `json:"originalFile"`  // What to do with original file
+	CertFile      string            `json:"certFile"`      // What to do with original file
+	KeyFile       string            `json:"keyFile"`       // What to do with original file
+	Replacements  map[string]string `json:"replacements"`  // Post-processing string replacements
 }
 
 // LoadConfig loads the server configuration from a JSON file
@@ -470,6 +530,9 @@ func LoadConfig(configPath string) (*ServerConfig, error) {
 	}
 	if config.FormatString == "" {
 		config.FormatString = "P:14 Y:12 X:12 H:10 MC:6 DT:8"
+	}
+	if config.Replacements == nil {
+		config.Replacements = make(map[string]string)
 	}
 
 	return &config, nil
