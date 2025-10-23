@@ -3,12 +3,22 @@
 version: "3"
 
 vars:
-  GREETING: Hello, World!
+  TEST_FILE: ./test/5526-koo.rmg
+  FORMAT_STRING: "'P:14 Y:12 X:12 H:10 MC:6 DT:10'"
 
 tasks:
   default:
     cmds:
-      - go build -o cube-rmgeo.exe main.go
+      # - go build -o cube-rmgeo.exe main.go
+      - go build .
+      - task: test-cli
+
+  test-cli:
+    cmds:
+      - ./cube-rmgeo.exe -o ./test/testfile-converted.gps {{.TEST_FILE}}
+
+  test-config:
+    cmds:
       - ./cube-rmgeo.exe -c config.json
       - ./cube-rmgeo.exe -c config.json test/input/a.txt
 
@@ -29,3 +39,7 @@ tasks:
       - default
       - pi
       - server
+
+  copy-to-server:
+    cmds:
+      - cp cube-rmgeo.exe \\DIETPI\vermessung\apps\cube-rmgeo

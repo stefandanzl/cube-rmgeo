@@ -1,0 +1,16 @@
+{
+  "delimiter": ";",
+  "extensions": ["txt", "csv", "rmg"],
+  "port": 8080,
+  "directory": "C:\\PROJECTS\\PROGRAMMIEREN\\Go\\cube-rmgeo\\test\\input",
+  "outputPattern": "%s-converted.txt",
+  "formatString": "P:14 Y:12 X:12 H:10 MC:6 DT:10",
+  "processedDir": "C:\\PROJECTS\\PROGRAMMIEREN\\Go\\cube-rmgeo\\test\\output",
+  "pollInterval": 0,
+  "originalFile": "",
+  "certFile": "C:\\PROJECTS\\PROGRAMMIEREN\\Go\\cube-rmgeo\\cert.crt",
+  "keyFile": "C:\\PROJECTS\\PROGRAMMIEREN\\Go\\cube-rmgeo\\cert.key",
+  "replacements": {
+    ".2025": ".25"
+  }
+}

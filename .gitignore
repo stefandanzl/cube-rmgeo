@@ -1,5 +1,7 @@
 *.exe
-test
+# test
 *.crt
 *.key
 cube-rmgeo
+*.log
+*-converted.*
