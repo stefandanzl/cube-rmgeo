@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func ensureAbsolutePath(path string) string {
@@ -44,6 +45,18 @@ func ApplyReplacements(content string, replacements map[string]string) string {
 		result = strings.ReplaceAll(result, search, replace)
 	}
 	return result
+}
+
+// Convert date format YYYY-MM-DD
+func DateConvert(dateStr string) (date string, err error) {
+	t, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return "", err
+	}
+
+	// Format to DD-MM-YY
+	return t.Format("02.01.06"), nil
+
 }
 
 // LoadConfig loads the server configuration from a JSON file

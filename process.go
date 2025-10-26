@@ -54,28 +54,29 @@ func BuildFormattedLine(row []string, specs []FormatSpec, rownum int) (rowString
 	}
 
 	// Header needs separate formatting
-	if rownum == 0 {
-		for i, spec := range specs {
-			field := row[i]
+	// if rownum == 0 {
+	// 	for i, spec := range specs {
+	// 		field := row[i]
 
-			if i >= len(row) {
-				continue
-			}
+	// 		if i >= len(row) {
+	// 			continue
+	// 		}
 
-			for f := len(field); f <= spec.Width+1; f++ {
-				field = field + " "
-			}
-			if len(field) > spec.Width {
-				field = field[:spec.Width+1+len(spec.Name)]
-			}
+	// 		for f := len(field); f <= spec.Width+2; f++ {
+	// 			field = field + " "
+	// 		}
+	// 		if len(field) > spec.Width {
+	// 			fieldR := []rune(field)[:spec.Width+len(spec.Name)-1]
+	// 			field = string(fieldR)
+	// 		}
 
-			paddedField := field //[:spec.Width+2]
-			// paddedField := dataPadding(field, spec.Width+len(spec.Name)+1)
-			fmt.Println(field, "   ", paddedField, len(field), spec.Width+2)
-			result.WriteString(fmt.Sprintf("%s ", paddedField))
-		}
-		return result.String(), false
-	}
+	// 		paddedField := field //[:spec.Width+2]
+	// 		// paddedField := dataPadding(field, spec.Width+len(spec.Name)+1)
+	// 		fmt.Println(field, "   ", paddedField, len(paddedField), spec.Width)
+	// 		result.WriteString(fmt.Sprintf("%s=%s ", spec.Name, paddedField))
+	// 	}
+	// 	return result.String(), false
+	// }
 
 	row = Process_P_column(row, specs)
 	if row == nil {
@@ -102,8 +103,12 @@ func BuildFormattedLine(row []string, specs []FormatSpec, rownum int) (rowString
 // P column is the first column (index 0), there are a couple of conditions
 // that lead to formatting
 func Process_P_column(row []string, specs []FormatSpec) []string {
+
 	if row[3] == "0.000" {
 		return nil
+	}
+	if row[4] != "rmGEO" {
+		return row
 	}
 	strColumnP := row[0]
 	strColumnP = strings.TrimPrefix(strColumnP, "_")
