@@ -125,7 +125,7 @@ func Process_P_column(row []string, specs []FormatSpec) []string {
 	row[4] = Stabilisierung[charStabil]
 
 	if gps {
-		strColumnP = strColumnP + "_GPS"
+		strColumnP = strColumnP + "_G"
 	}
 
 	row[0] = strColumnP

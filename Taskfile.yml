@@ -42,4 +42,4 @@ tasks:
 
   copy-to-server:
     cmds:
-      - cp cube-rmgeo.exe \\DIETPI\vermessung\apps\cube-rmgeo
+      - cp cube-rmgeo.exe //DIETPI/vermessung/apps/cube-rmgeo
